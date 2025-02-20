@@ -62,9 +62,10 @@ class CodeContainer(ft.Container):
         self.margin = 10
         self.padding = 10
         self.alignment = ft.alignment.center
-        self.bgcolor = ft.colors.AMBER
+        self.bgcolor = ft.colors.GREEN_500
+        self.opacity = 0.8
         self.width = 350
-        self.height = 350
+        self.height = 300
         self.border_radius = 10
     
     def pick_files_result(self, e):

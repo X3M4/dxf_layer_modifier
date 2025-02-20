@@ -4,8 +4,12 @@ from models import csv_reader as rd
 import ezdxf
 
 class ModifierContainer(ft.Container):
-    def __init__(self, page, csv_reader):
+    def __init__(self, page, csv_reader, update_layers_callback):
         super().__init__()
+        
+        self.update_layers_callback = update_layers_callback
+        
+        self.not_modified_layers = []
         
         self.page = page
         
@@ -33,7 +37,8 @@ class ModifierContainer(ft.Container):
         self.modify_button = ft.ElevatedButton(
             "Modify DXF",
             icon=ft.icons.VERIFIED,
-            on_click=self.modify_dxf
+            on_click=self.modify_dxf,
+            disabled=True
         )
 
         # Configure content
@@ -51,15 +56,17 @@ class ModifierContainer(ft.Container):
         self.margin = 10
         self.padding = 10
         self.alignment = ft.alignment.center
-        self.bgcolor = ft.colors.AMBER
+        self.bgcolor = ft.colors.ORANGE_500
+        self.opacity = 0.8
         self.width = 350
-        self.height = 350
+        self.height = 300
         self.border_radius = 10
 
     def pick_files_result(self, e):
         """Guarda la ruta del archivo DXF sin tocar el DataFrame."""
         if e.files:
             selected_file = e.files[0]
+            self.modify_button.disabled = False
             print(f"📂 Archivo DXF seleccionado: {selected_file.path}")  # Debug
 
             self.file_name.value = f"Selected file: {selected_file.name}"
@@ -67,10 +74,13 @@ class ModifierContainer(ft.Container):
 
             # 🔹 Guardar la ruta del DXF para modificarlo después
             self.dxf_file_path = selected_file.path  
+            
+            self.page.update()
 
             print("✅ Archivo DXF listo para modificar.")
-
-
+            
+    def get_not_modified_layers(self):
+        return self.not_modified_layers
     
     def modify_dxf(self, e):
         print("modify_dxf fue llamado")  
@@ -138,6 +148,9 @@ class ModifierContainer(ft.Container):
                     print(f"Reemplazando capa: {layer_name} -> {new_value}")
                     layer.dxf.name = new_value  # Cambiar el nombre de la capa
                     cambios_realizados += 1
+                else:
+                    if layer_name not in self.not_modified_layers:
+                        self.not_modified_layers.append(layer_name)
 
             # 🔹 MODIFICAR CAPAS EN ENTIDADES
             for entity in doc.entities:
@@ -165,7 +178,11 @@ class ModifierContainer(ft.Container):
             else:
                 print("⚠️ No se encontraron coincidencias en el DXF")
                 self.page.snack_bar = ft.SnackBar(ft.Text("No se encontraron coincidencias en el DXF"), open=True)
+            
+            for layer in self.not_modified_layers:
+                print(f"⚠️ Capa no modificada: {layer}")
 
+            self.update_layers_callback()
             self.page.update()
 
         except Exception as ex:
